@@ -1,0 +1,35 @@
+---
+
+- name: "Validate the sudoers file before saving"
+  lineinfile:
+    path: /etc/sudoers
+    state: present
+    line: "\nDefaults env_keep += \"SSH_CLIENT\""
+    validate: '/usr/sbin/visudo -cf %s'
+
+- name: "Setup Bashrc"
+  lineinfile:
+    path: /etc/bashrc
+    state: present
+    line: "{{ item }}"
+  with_items:
+    - "\n# Added by linux bastion bootstrap"
+    - "declare -rx IP=$(echo $SSH_CLIENT | awk '{print $1}')"
+    - " declare -rx BASTION_LOG=/var/log/bastion/bastion.log"
+    - "declare -rx PROMPT_COMMAND='history -a >(logger -t \"ON: $(date)   [FROM]:${IP}   [USER]:${USER}   [PWD]:${PWD}\" -s 2>>${BASTION_LOG})'"
+
+- name: "Create bastion directory" 
+  file:
+    path: /var/log/bastion
+    state: directory
+    owner: root
+    group: ec2-user
+    mode: 0755
+
+- name: "Touch the bastion logfile, add some permissions"
+  file:
+    path: /var/log/bastion/bastion.log
+    state: touch
+    owner: root
+    group: ec2-user
+    mode: 0662
